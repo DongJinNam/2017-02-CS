@@ -26,7 +26,6 @@ public:
 	void InitializeKeyIndex(int, unsigned char);
 	void InitializePlainIndex(int, unsigned char);
 	void InitializeSBox();
-	void setSBox(int, unsigned char);
 	void setInverseSBox();
 	void setMixColMat(unsigned char mat[],int count);
 	void setInverseMixColMat(unsigned char mat[], int count);
@@ -48,7 +47,11 @@ public:
 	unsigned char getSBox(int i,int j);
 	unsigned char getRFVal(unsigned char val, int round);
 
+	// GF µ¡¼À ¿¬»ê
 	unsigned char GFAdd(unsigned char, unsigned char);
+	// GF °ö¼À ¿¬»ê
 	unsigned char GFMul(unsigned char, unsigned char);
+	// GF °ö¼À ¿ª¿ø ±¸ÇÏ±â. (Extended Euclid Algorithm)
+	unsigned char GFInverseMul(unsigned char val, unsigned short irreducible);
 };
 

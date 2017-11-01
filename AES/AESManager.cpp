@@ -60,25 +60,27 @@ void AESManager::InitializePlainIndex(int index, unsigned char val)
 
 void AESManager::InitializeSBox()
 {	
-	unsigned char p = 1, q = 1;
-	do {
-		p = p ^ (p << 1) ^ (p & 0x80 ? 0x1B : 0);
-
-		q ^= q << 1;
-		q ^= q << 2;
-		q ^= q << 4;
-		q ^= q & 0x80 ? 0x09 : 0;
-
-		unsigned char xformed = q ^ ROTL8(q, 1) ^ ROTL8(q, 2) ^ ROTL8(q, 3) ^ ROTL8(q, 4);
-
-		s_box[p] = xformed ^ 0x15;
-	} while (p != 1);
-	s_box[0] = 0x15;	
-}
-
-void AESManager::setSBox(int i, unsigned char uc)
-{
-	s_box[i] = uc;
+	for (int i = 0; i < 256; i++) {
+		unsigned char val = i;
+		unsigned char inv = 0x00;		
+		unsigned char tmp;
+		if (i != 0)
+			inv = GFInverseMul(val,irreducible);
+		for (int j = 0; j < 8; j++) {
+			unsigned short cnt = 0;
+			if (inv & mapTbl[j]) cnt++;
+			if (inv & mapTbl[(j+4) % 8]) cnt++;
+			if (inv & mapTbl[(j + 5) % 8]) cnt++;
+			if (inv & mapTbl[(j + 6) % 8]) cnt++;
+			if (inv & mapTbl[(j + 7) % 8]) cnt++;
+			if (0x15 & mapTbl[j]) cnt++;
+			if (cnt % 2 == 1)
+				tmp |= mapTbl[j];
+			else
+				tmp &= ~mapTbl[j];
+		}
+		s_box[i] = tmp;
+	}
 }
 
 void AESManager::setInverseSBox()
@@ -282,4 +284,64 @@ unsigned char AESManager::GFMul(unsigned char a, unsigned char b)
 	}
 	ans = (unsigned char)(res);
 	return ans;
+}
+
+unsigned char AESManager::GFInverseMul(unsigned char val, unsigned short ir_val)
+{
+
+	unsigned short temp[3], A[3], B[3], q, r;
+	unsigned short temp0, temp1;
+	int start_a, start_b; // A[2], B[2] 에서 가장 왼쪽에 있는 1의 index
+	A[0] = 1; A[1] = 0; A[2] = ir_val;
+	B[0] = 0; B[1] = 1; B[2] = val;
+
+	while (B[2] > 1) {
+		
+		start_a = 0;
+		start_b = 0;
+		// 왼쪽에서 부터 처음 1인 위치 찾기.
+		for (int i = 15; i >= 0; i--) {
+			if (A[2] & mapTbl[i]) {
+				start_a = i > start_a ? i : start_a;
+			}
+			if (B[2] & mapTbl[i]) {
+				start_b = i > start_b ? i : start_b;
+			}
+		}
+
+		q = 0x00;
+		r = A[2];
+		while (start_a >= start_b && r != 0x00) {
+			r ^= (B[2] << (start_a - start_b));
+			q |= mapTbl[start_a - start_b];
+			// 왼쪽에서 부터 처음 1인 위치 찾기.
+			for (int i = start_a; i >= 0; i--) {
+				if (r & mapTbl[i]) {
+					start_a = i;
+					break;
+				}
+				if (i == 0) start_a = 0; // 예외처리
+			}
+		}
+
+		temp0 = 0;
+		temp1 = 0;
+		for (int i = 0; i < 16; i++) {
+			if (q & mapTbl[i]) {
+				temp0 ^= (B[0] << i);
+				temp1 ^= (B[1] << i);
+			}
+		}
+
+		temp[0] = A[0] ^ temp0;
+		temp[1] = A[1] ^ temp1;
+		temp[2] = r;
+		A[0] = B[0];
+		A[1] = B[1];
+		A[2] = B[2];
+		B[0] = temp[0];
+		B[1] = temp[1];
+		B[2] = temp[2];
+	}	
+	return B[1];
 }
