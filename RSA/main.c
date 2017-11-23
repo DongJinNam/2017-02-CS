@@ -2,22 +2,28 @@
 #include <stdlib.h>
 #include "xxhash.h"
 
+typedef long long ll;
+
 // square and multiply
-long long squareAndMultiply(int a, int p, int n);
+ll squareAndMultiply(ll a, ll p, ll n);
 // prime -> 1, composite -> -1
-int milerRabinTest(int n);
+ll milerRabinTest(ll n);
 // mod inverse using with extended euclid
-int modInverse(int a, int n);
+ll modInverse(ll a, ll n);
 // encryption RSA
-long long encrypt_RSA(int m, int e, int n);
+ll encrypt_RSA(ll m, ll e, ll n);
 
 int main() {
-	int n, phi;
+	ll n, phi;
 	int i, j;
-	int p, q, r, e, d;
-	long long message_in, message_out;
-	long long cipher;
-	char buf[65];
+	ll p, q, r, e, d;
+	ll hashed, hashed2, hashed3, sign;
+	ll message_in, message_out;
+	ll cipher;	
+	unsigned __int64 hash, hash2;
+	char buf[65], buf2[65];
+
+	srand(time(NULL));
 
 	//****************************************
 	//key setup
@@ -43,38 +49,60 @@ int main() {
 	}
 	d = modInverse(e, phi);
 
-	printf("p = %d\n", p);
-	printf("q = %d\n", q);
-	printf("r = %d\n", r);
-	printf("N = %d\n", n);
-	printf("phi = %d\n", phi);
-	printf("e = %d\n", e);
-	printf("d = %d\n\n", d);
+	printf("p = %lld\n", p);
+	printf("q = %lld\n", q);
+	printf("r = %lld\n", r);
+	printf("N = %lld\n", n);
+	printf("phi = %lld\n", phi);
+	printf("e = %lld\n", e);
+	printf("d = %lld\n\n", d);
 
 	printf("Message Input : ");
 	scanf("%lld", &message_in);
 	printf("Message : %lld\n\n", message_in);
 
-	// Digital Signature
-	sprintf(buf, "%l64u", message_in);
-	unsigned __int64 hash = XXH64(buf, sizeof(buf) - 1, 0);
+	// Digital Signature Sign
+	sprintf(buf, "%lld", message_in);
+	hash = XXH64(buf, sizeof(buf) - 1, 0);
+	hashed = hash % n;
 
 	printf("**Encryption\n");
 	cipher = encrypt_RSA(message_in, e, n);
+	sign = squareAndMultiply(hashed, d, n);
 	printf("cipher : %lld\n\n", cipher);
+
+	printf("**Generate signature\n");
+	printf("message's hash value : %d\n",hashed);
+	printf("generated signature : %d\n", sign);
+	printf("\n\n");
 
 	message_out = encrypt_RSA(cipher, d, n);
 	printf("**Decryption\n");
 	printf("decrypted cipher : %lld\n\n", message_out);
 
+	// Digital Signature Verify
+	sprintf(buf2, "%lld", message_out);
+	hash2 = XXH64(buf2, sizeof(buf2) - 1, 0);
+	hashed2 = hash2 % n;
+	hashed3 = squareAndMultiply(sign, e, n);
+
+	printf("**Verify signature\n");
+	printf("received signature value : %d\n",sign);
+	printf("decrypted message's hash value : %d\n", hashed2);
+	printf("verify value from signature : %d\n", hashed3);
+
+	if (hashed2 == hashed3)
+		printf("Signature valid!\n");
+	else
+		printf("Signature not valid!\n");
 	return 0;
 }
 
-long long squareAndMultiply(int a, int p, int n) {
-	int binary[32] = { 0 };
+ll squareAndMultiply(ll a, ll p, ll n) {
+	int binary[64] = { 0 };
 	int idx = 0;
 	int i;
-	long long val = 1;
+	ll val = 1;
 	while (p > 0) {
 		binary[idx++] = p % 2;
 		p /= 2;
@@ -88,13 +116,13 @@ long long squareAndMultiply(int a, int p, int n) {
 	return val;
 }
 
-int milerRabinTest(int n) {
-	int cmp = n - 1;
-	int m, k, t;
-	int count = 0;
+ll milerRabinTest(ll n) {
+	ll cmp = n - 1;
+	ll m, k, t;
+	ll count = 0;
+	ll a;
 	int i;	
-	int a;
-
+	
 	while (cmp % 2 == 0) {
 		cmp /= 2;
 		count++;
@@ -110,13 +138,12 @@ int milerRabinTest(int n) {
 	return -1;
 }
 
-int modInverse(int a, int n) {
-	int a1 = 1, a2 = 0, a3 = n;
-	int b1 = 0, b2 = 1, b3 = a;
-	int t1, t2, t3;
-	int q;
-	int rtn;
-
+ll modInverse(ll a, ll n) {
+	ll a1 = 1, a2 = 0, a3 = n;
+	ll b1 = 0, b2 = 1, b3 = a;
+	ll t1, t2, t3;
+	ll q;
+	ll rtn;
 	while (1) {
 		// no inverse
 		if (b3 == 0) {
@@ -142,7 +169,7 @@ int modInverse(int a, int n) {
 	return rtn;
 }
 
-long long encrypt_RSA(int m, int e, int n) {
+ll encrypt_RSA(ll m, ll e, ll n) {
 	return squareAndMultiply(m, e, n);
 }
 
